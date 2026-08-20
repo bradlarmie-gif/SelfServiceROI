@@ -106,6 +106,14 @@ export interface RoiDriver {
   /** Only shown when the practice is paid this way. Untagged = shown either way. */
   payerModel?: PayerModel;
   /**
+   * Needs a team of at least this many clinicians to be a real lever.
+   * Retention and locum cover model replacing someone who leaves. A solo
+   * doctor cannot backfill themselves: if they burn out the practice closes,
+   * and there is no agency line to avoid. Offering these to one or two people
+   * is the moment they can tell the tool was not built for them.
+   */
+  minClinicians?: number;
+  /**
    * Why this driver does not count the whole amount, in the practice's own
    * words. Three different things are going on underneath (attribution on wRVU
    * and sepsis, conversion on LWBS and admissions, realization on denials, HCC
@@ -274,6 +282,7 @@ const denialDriver = (denialsCustomDef: number): RoiDriver => ({
 
 const providerWellbeingDriver: RoiDriver = {
   id: "providerWellbeing",
+  minClinicians: 3,
   domain: "Workforce",
   title: "Retention (burnout)",
   optional: true,
@@ -304,6 +313,7 @@ const providerWellbeingDriver: RoiDriver = {
 
 const physicianAgencyDriver: RoiDriver = {
   id: "physicianLocumAgency",
+  minClinicians: 3,
   domain: "Workforce",
   title: "Locum / agency avoided",
   optional: true,
@@ -535,6 +545,7 @@ const nursingOvertimeDriver: RoiDriver = {
 
 const nursingRetentionDriver: RoiDriver = {
   id: "nursingRetention",
+  minClinicians: 3,
   domain: "Workforce",
   title: "Retention (burnout)",
   optional: true,
@@ -558,6 +569,7 @@ const nursingRetentionDriver: RoiDriver = {
 
 const nursingAgencyDriver: RoiDriver = {
   id: "nursingAgency",
+  minClinicians: 3,
   domain: "Workforce",
   title: "Agency avoided",
   optional: true,

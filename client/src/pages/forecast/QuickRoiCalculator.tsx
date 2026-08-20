@@ -187,6 +187,8 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
   // when the updater returns the same value, so this cannot re-enter.
   useEffect(() => {
     if (totalProviders > 0) setOnAbridge((cur) => (cur > totalProviders ? totalProviders : cur));
+    // a solo practice is not asked the question, so answer it: it is them
+    if (totalProviders === 1) setOnAbridge(1);
   }, [totalProviders]);
   const [occupancy, setOccupancy] = useState(d.occupancy ?? 0);
   // Documentation minutes in notes (before -> after). Feeds Patient Access
@@ -307,27 +309,29 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
       DRIVERS[setting]
         .filter((dr) => dr.domain === dom)
         .filter((dr) => {
+          // a lever that needs a team is not offered to a solo practice
+          if (dr.minClinicians && totalProviders > 0 && totalProviders < dr.minClinicians) return false;
           if (!dr.payerModel || !hasPayerSplit) return true;
           if (payerModel === "both" || payerModel === null) return true;
           return dr.payerModel === payerModel;
         }),
-    [setting, hasPayerSplit, payerModel],
+    [setting, hasPayerSplit, payerModel, totalProviders],
   );
 
   // Switching the payer answer must also switch OFF anything it hides, or a
   // driver the practice can no longer see keeps contributing to their total.
   useEffect(() => {
-    if (!hasPayerSplit) return;
     setEnabled((prev) => {
       let changed = false;
       const next = { ...prev };
       for (const d of DRIVERS[setting]) {
-        const hidden = !!d.payerModel && payerModel !== null && payerModel !== "both" && d.payerModel !== payerModel;
-        if (hidden && next[d.id]) { next[d.id] = false; changed = true; }
+        const hiddenByPayer = hasPayerSplit && !!d.payerModel && payerModel !== null && payerModel !== "both" && d.payerModel !== payerModel;
+        const hiddenBySize = !!d.minClinicians && totalProviders > 0 && totalProviders < d.minClinicians;
+        if ((hiddenByPayer || hiddenBySize) && next[d.id]) { next[d.id] = false; changed = true; }
       }
       return changed ? next : prev;
     });
-  }, [payerModel, hasPayerSplit, setting]);
+  }, [payerModel, hasPayerSplit, setting, totalProviders]);
   const needsPayerModel = hasPayerSplit && revenuePicked && payerModel === null;
   const toggleGoal = (d: Domain) => setGoals((g) => (g.includes(d) ? g.filter((x) => x !== d) : [...g, d]));
   const domains = useMemo(
@@ -462,10 +466,12 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
             <Row label={`How many ${scopeWord} are in your ${orgWord}?`} hint={`everyone doing ${settingWord} documentation today`}>
               <NumInput value={totalProviders} onChange={setTotalProviders} placeholder="e.g., 90" />
             </Row>
+            {totalProviders !== 1 && (
             <Row label="How many of them would use Abridge?" hint={totalProviders > 0 ? `of your ${fmtInt(totalProviders)} ${scopeWord}. Starting with a subset is normal` : "starting with a subset is normal, you can raise this later"}>
               <NumInput value={onAbridge} onChange={setOnAbridge} placeholder="e.g., 60"
                 max={totalProviders > 0 ? totalProviders : undefined} />
             </Row>
+            )}
             <Row
               label={`About how many ${meta.encWord} does each ${meta.providerWord.replace(/s$/, "")} ${meta.volumeVerb ?? "see"} in a year?`}
               hint={meta.volumeHint ?? "a normal full year, not a busy month scaled up"}>
@@ -536,6 +542,7 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
 
       {step === 3 && (
         <AnswerStep practiceName={practiceName} encWord={meta.encWord} breakdown={breakdown} todayValue={todayValue} todayValueFull={todayValueFull} potentialValueFull={potentialValueFull} providerWord={meta.providerWord}
+          showAdoptionDial={totalProviders > onAbridge}
           potentialValue={potentialValue} headroom={headroom} hoursReclaimed={hoursReclaimed}
           adoptionNow={adoptionNow} utilNow={utilNow} totalProviders={totalProviders}
           targetAdoptionPct={targetAdoptionPct} setTargetAdoptionPct={setTargetAdoptionPct}
@@ -988,7 +995,7 @@ function AnswerStep(p: {
   todayValue: number; todayValueFull: number; potentialValueFull: number; potentialValue: number; headroom: number; hoursReclaimed: number;
   adoptionNow: number; utilNow: number; totalProviders: number;
   targetAdoptionPct: number; setTargetAdoptionPct: (n: number) => void; targetUtilPct: number; setTargetUtilPct: (n: number) => void;
-  showUtilDial: boolean; price: number; setPrice: (n: number) => void; onBack: () => void; onExport: () => void;
+  showUtilDial: boolean; showAdoptionDial: boolean; price: number; setPrice: (n: number) => void; onBack: () => void; onExport: () => void;
 }) {
   const todayShown = useCountUp(p.todayValue);
   const todayFullShown = useCountUp(p.todayValueFull);
@@ -1034,7 +1041,11 @@ function AnswerStep(p: {
         <span className="text-[26px] text-[#9A8C7A] font-normal">a year</span>
       </div>
       <p className="mt-5 text-[16px] leading-[1.6] text-[#5E534A] max-w-[560px]">
-        {makeup ? <>From {makeup}, at the {Math.round(p.adoptionNow)}% rollout and {Math.round(p.utilNow)}% usage you set. Change either one and this moves.</> : "Switch on the changes you expect and the number builds here."}
+        {makeup ? (
+          p.showAdoptionDial
+            ? <>From {makeup}, at the {Math.round(p.adoptionNow)}% rollout and {Math.round(p.utilNow)}% usage you set. Change either one and this moves.</>
+            : <>From {makeup}, on the {Math.round(p.utilNow)}% of your {p.encWord} you said you would document with Abridge. Change that and this moves.</>
+        ) : "Switch on the changes you expect and the number builds here."}
       </p>
       {hasRange && (
         <p className="mt-3 text-[14px] leading-[1.6] text-[#8C8073] max-w-[560px]">
@@ -1045,7 +1056,10 @@ function AnswerStep(p: {
         </p>
       )}
 
-      {/* Beat 2 — the upside */}
+      {/* Beat 2 — the upside. A solo practice at full usage has nothing left to
+          roll out to, and the beat would earn a rounding error and read as
+          filler, so it is not rendered at all. */}
+      {(p.showAdoptionDial || p.showUtilDial) && (
       <div className="mt-14 pt-1">
         <div className={EYEBROW}>If you rolled it out further</div>
         <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1">
@@ -1071,15 +1085,18 @@ function AnswerStep(p: {
 
         {/* the dials */}
         <div className={`mt-9 grid grid-cols-1 ${p.showUtilDial ? "sm:grid-cols-2" : ""} gap-x-10 gap-y-6`}>
-          <Slider label={`More of your ${p.providerWord} using it`} value={p.targetAdoptionPct} min={Math.round(p.adoptionNow)} onChange={p.setTargetAdoptionPct} right={`${fmtInt(Math.round(p.totalProviders * p.targetAdoptionPct / 100))} of ${fmtInt(p.totalProviders)}`} />
+          {p.showAdoptionDial && (
+            <Slider label={`More of your ${p.providerWord} using it`} value={p.targetAdoptionPct} min={Math.round(p.adoptionNow)} onChange={p.setTargetAdoptionPct} right={`${fmtInt(Math.round(p.totalProviders * p.targetAdoptionPct / 100))} of ${fmtInt(p.totalProviders)}`} />
+          )}
           {p.showUtilDial && (
-            <Slider label={`Using it on more of their ${p.encWord}`} value={p.targetUtilPct} min={Math.round(p.utilNow)} onChange={p.setTargetUtilPct} right={`${p.targetUtilPct}%`} />
+            <Slider label={`Using it on more of ${p.showAdoptionDial ? "their" : "your"} ${p.encWord}`} value={p.targetUtilPct} min={Math.round(p.utilNow)} onChange={p.setTargetUtilPct} right={`${p.targetUtilPct}%`} />
           )}
         </div>
         <p className="mt-6 text-[13.5px] leading-[1.6] text-[#8C8073] max-w-[560px]">
           The per-{p.encWord.replace(/s$/, "")} effect stays exactly where you set it. The only thing growing here is how many {p.encWord} it runs on.
         </p>
       </div>
+      )}
 
       {/* THE RETURN — the one thing they still have to type. Before a price is
           in, this is an unanswered question, so it is styled as a prompt (tinted

@@ -206,6 +206,33 @@ for (const vp of VIEWPORTS) {
       ).toHaveCount(1);
     });
 
+    /**
+     * A solo practice is a different shape, not a smaller one. Retention and
+     * locum cover model replacing a clinician who leaves; a solo doctor cannot
+     * backfill themselves, and offering those levers is the moment they can
+     * tell the tool was not built for them. It was also counting them.
+     */
+    test("a solo practice is not offered team-scale levers", async ({ page }) => {
+      await enterCalculator(page);
+      await page.getByText("Outpatient", { exact: true }).first().click();
+      await pickAllGoals(page, "ffs");
+
+      const inputs = page.locator("input");
+      await inputs.nth(0).fill("Dr Ellis");
+      await inputs.nth(1).fill("1");
+      // the "how many of them would use Abridge" row answers itself at n=1
+      await expect(inputs, "the solo step should not ask a question with one answer").toHaveCount(4);
+      await inputs.nth(2).fill("3200");
+      await inputs.nth(3).fill("80");
+      await page.getByRole("button", { name: /next: what changes/i }).click();
+
+      await page.getByRole("button", { name: /^Workforce/ }).click();
+      await expect(page.getByText("Retention (burnout)")).toHaveCount(0);
+      await expect(page.getByText("Locum / agency avoided")).toHaveCount(0);
+      // the one workforce lever a solo doctor really has
+      await expect(page.getByText("Scribe cost reduction")).toBeVisible();
+    });
+
     test("a full run produces a dollar answer", async ({ page }) => {
       await enterCalculator(page);
       await page.getByText("Outpatient", { exact: true }).first().click();
