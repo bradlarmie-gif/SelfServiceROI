@@ -191,6 +191,11 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
     if (totalProviders === 1) setOnAbridge(1);
   }, [totalProviders]);
   const [occupancy, setOccupancy] = useState(d.occupancy ?? 0);
+  // A solo practice is a different buyer, not a smaller one. The decision is
+  // "does this cost less than my scribe, and do I get home earlier", so time
+  // leads and the revenue drivers support it, rather than the other way round.
+  const isSolo = totalProviders === 1;
+
   // Documentation minutes in notes (before -> after). Feeds Patient Access
   // dollars (outpatient) and the reclaimed-hours proof (all physician settings).
   // Blank by default: the practice sets its own before and after. The setting's
@@ -287,11 +292,16 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
   // ── lift-step domain tabs ──────────────────────────────────────────────────
   const [liftTab, setLiftTab] = useState(0);
   // Every domain this setting could speak to.
-  const availableDomains = useMemo(() => DOMAIN_ORDER.filter((dom) => {
-    const hasDrivers = DRIVERS[setting].some((dr) => dr.domain === dom);
-    const capacityTime = dom === "Capacity" && !isNursing; // reclaimed-hours proof lives here
-    return (hasDrivers || capacityTime) && !!DOMAIN_GOALS[setting][dom];
-  }), [setting, isNursing]);
+  const availableDomains = useMemo(() => {
+    const doms = DOMAIN_ORDER.filter((dom) => {
+      const hasDrivers = DRIVERS[setting].some((dr) => dr.domain === dom);
+      const capacityTime = dom === "Capacity" && !isNursing; // reclaimed-hours proof lives here
+      return (hasDrivers || capacityTime) && !!DOMAIN_GOALS[setting][dom];
+    });
+    // Time first for a solo doctor: the hours are the reason they are here,
+    // and the coding dollars are the supporting argument, not the lead.
+    return isSolo ? [...doms].sort((a, b) => (a === "Capacity" ? -1 : b === "Capacity" ? 1 : 0)) : doms;
+  }, [setting, isNursing, isSolo]);
   // What they said they were actually trying to fix. That choice, not the
   // catalogue, decides how many sections the next step has.
   const [goals, setGoals] = useState<Domain[]>([]);
@@ -541,7 +551,7 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
       )}
 
       {step === 3 && (
-        <AnswerStep practiceName={practiceName} encWord={meta.encWord} breakdown={breakdown} todayValue={todayValue} todayValueFull={todayValueFull} potentialValueFull={potentialValueFull} providerWord={meta.providerWord}
+        <AnswerStep practiceName={practiceName} encWord={meta.encWord} breakdown={breakdown} todayValue={todayValue} todayValueFull={todayValueFull} potentialValueFull={potentialValueFull} providerWord={meta.providerWord} isSolo={isSolo}
           showAdoptionDial={totalProviders > onAbridge}
           potentialValue={potentialValue} headroom={headroom} hoursReclaimed={hoursReclaimed}
           adoptionNow={adoptionNow} utilNow={utilNow} totalProviders={totalProviders}
@@ -995,14 +1005,27 @@ function AnswerStep(p: {
   todayValue: number; todayValueFull: number; potentialValueFull: number; potentialValue: number; headroom: number; hoursReclaimed: number;
   adoptionNow: number; utilNow: number; totalProviders: number;
   targetAdoptionPct: number; setTargetAdoptionPct: (n: number) => void; targetUtilPct: number; setTargetUtilPct: (n: number) => void;
-  showUtilDial: boolean; showAdoptionDial: boolean; price: number; setPrice: (n: number) => void; onBack: () => void; onExport: () => void;
+  showUtilDial: boolean; showAdoptionDial: boolean; isSolo: boolean; price: number; setPrice: (n: number) => void; onBack: () => void; onExport: () => void;
 }) {
   const todayShown = useCountUp(p.todayValue);
+  const hoursShown = useCountUp(p.hoursReclaimed);
+  /**
+   * For one doctor the hours ARE the argument. $10K of coding accuracy is real
+   * but it is not why a solo physician buys; getting the evening back is. Lead
+   * with the time and let the money support it. Only when they have actually
+   * given us a before and after, though: with no minutes entered there are no
+   * hours, and we fall back to the dollar hero rather than lead with zero.
+   */
+  const leadWithTime = p.isSolo && p.hoursReclaimed > 0;
+  const minutesPerWorkingDay = Math.round((p.hoursReclaimed * 60) / 232);
   const todayFullShown = useCountUp(p.todayValueFull);
   const hasRange = p.todayValueFull > p.todayValue * 1.01;
   const potentialShown = useCountUp(p.potentialValue);
   const potentialFullShown = useCountUp(p.potentialValueFull);
   const roi = p.price > 0 ? p.todayValue / p.price : 0;
+  const priced = p.price > 0;
+  const net = p.todayValue - p.price;
+  const underwater = priced && net < 0;
   const todayPct = p.potentialValue > 0 ? (p.todayValue / p.potentialValue) * 100 : 0;
   const headroomPct = Math.max(0, 100 - todayPct);
   const dollarLevers = p.breakdown;
@@ -1010,11 +1033,13 @@ function AnswerStep(p: {
     xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
   const makeup = [
     listOf(dollarLevers.map((r) => r.title.toLowerCase())),
-    p.hoursReclaimed > 0 ? `${fmtInt(p.hoursReclaimed)} clinician hours back` : "",
+    // the hours are already the headline when time leads; repeating them here
+    // and again in the breakdown strip is the same number three times
+    !leadWithTime && p.hoursReclaimed > 0 ? `${fmtInt(p.hoursReclaimed)} clinician hours back` : "",
   ].filter(Boolean).join(", plus ");
 
   // Nothing is on: show an intentional empty state, not "$0" + a stray meter.
-  if (p.todayValue <= 0 && p.potentialValue <= 0) {
+  if (p.todayValue <= 0 && p.potentialValue <= 0 && p.hoursReclaimed <= 0) {
     return (
       <div>
         <div className={EYEBROW}>The answer</div>
@@ -1030,8 +1055,31 @@ function AnswerStep(p: {
   return (
     <div>
       {/* Beat 1 — what it's worth today */}
-      <h1 className="font-abridge text-[26px] sm:text-[32px] leading-[1.14] text-[#4A3F35] mt-4">For {p.practiceName}, Abridge could be worth</h1>
-      <div className="font-abridge text-[66px] sm:text-[92px] leading-[0.88] text-[#EA2C00] mt-3 flex flex-wrap items-baseline gap-x-4">
+      <h1 className="font-abridge text-[26px] sm:text-[32px] leading-[1.14] text-[#4A3F35] mt-4">
+        {leadWithTime ? <>For {p.practiceName}, Abridge could give back</> : <>For {p.practiceName}, Abridge could be worth</>}
+      </h1>
+      {leadWithTime && (
+        <>
+          <div className="font-abridge text-[66px] sm:text-[92px] leading-[0.88] text-[#EA2C00] mt-3 flex flex-wrap items-baseline gap-x-4">
+            <span>{fmtInt(hoursShown)}</span>
+            <span className="text-[26px] text-[#9A8C7A] font-normal">hours a year</span>
+          </div>
+          <p className="mt-4 text-[16px] leading-[1.6] text-[#5E534A] max-w-[560px]">
+            About <span className="font-abridge text-[#1A1A1A]">{minutesPerWorkingDay} minutes</span> back on a working day,
+            from the before and after you set yourself. Time, not a dollar: what
+            you do with it is your call.
+          </p>
+        </>
+      )}
+      {leadWithTime && p.todayValue <= 0 ? (
+        <p className="mt-9 text-[15px] leading-[1.6] text-[#8C8073] max-w-[540px]">
+          There is a dollar side to this too. Go back and switch on the billing
+          changes you think you would see, and it will show up here alongside the
+          hours.
+        </p>
+      ) : (
+      <div className={`font-abridge leading-[0.88] text-[#EA2C00] flex flex-wrap items-baseline gap-x-4 ${leadWithTime ? "text-[38px] sm:text-[48px] mt-10" : "text-[66px] sm:text-[92px] mt-3"}`}>
+        {leadWithTime && <span className="text-[15px] font-normal tracking-[0.14em] uppercase text-[#A69A88] w-full mb-1">And in dollars</span>}
         <span>{fmtShort(todayShown)}</span>
         {hasRange && (
           <span className="text-[34px] sm:text-[46px] text-[#1A1A1A]">
@@ -1040,6 +1088,8 @@ function AnswerStep(p: {
         )}
         <span className="text-[26px] text-[#9A8C7A] font-normal">a year</span>
       </div>
+      )}
+      {!(leadWithTime && p.todayValue <= 0) && (
       <p className="mt-5 text-[16px] leading-[1.6] text-[#5E534A] max-w-[560px]">
         {makeup ? (
           p.showAdoptionDial
@@ -1047,6 +1097,7 @@ function AnswerStep(p: {
             : <>From {makeup}, on the {Math.round(p.utilNow)}% of your {p.encWord} you said you would document with Abridge. Change that and this moves.</>
         ) : "Switch on the changes you expect and the number builds here."}
       </p>
+      )}
       {hasRange && (
         <p className="mt-3 text-[14px] leading-[1.6] text-[#8C8073] max-w-[560px]">
           The lower figure assumes a share of this never lands: claims downcoded,
@@ -1098,57 +1149,65 @@ function AnswerStep(p: {
       </div>
       )}
 
-      {/* THE RETURN — the one thing they still have to type. Before a price is
-          in, this is an unanswered question, so it is styled as a prompt (tinted
-          card, coral rule, a caret) rather than a quiet row that reads optional. */}
+      {/*
+        THE RETURN — the one thing they still have to type.
+
+        The price input is rendered ONCE, in the same position, in both states.
+        It used to live inside a `priced ? (...) : (...)` ternary, so the first
+        digit flipped the condition, React swapped the whole subtree, and the
+        input was unmounted mid-keystroke: focus dropped, the rest of the number
+        went nowhere, and a price of "2" against $396K printed a 76,953x return.
+        An input must never be unmounted by the state it drives. Only the
+        surrounding cells change now; the field itself is stable.
+      */}
       <div className="mt-16">
-        <div className={`rounded-2xl border transition-colors ${p.price > 0 ? "border-[#EAE3D9] bg-[#FDFBF8]" : "border-[#EA2C00]/35 bg-[#FFF7F4]"}`}>
+        <div className={`rounded-2xl border transition-colors ${priced ? "border-[#EAE3D9] bg-[#FDFBF8]" : "border-[#EA2C00]/35 bg-[#FFF7F4]"}`}>
           <div className="px-7 sm:px-9 py-8">
             <div className={EYEBROW}>The return</div>
-            {p.price > 0 ? (
-              <>
-                <h2 className="font-abridge text-[22px] sm:text-[26px] leading-[1.2] text-[#1A1A1A] mt-3">
-                  What you keep, after paying for it
-                </h2>
-                <div className="mt-7 flex flex-wrap items-end gap-x-12 gap-y-6">
-                  <div>
-                    <div className="text-[12.5px] text-[#8C8073] mb-2">What Abridge would cost you</div>
-                    <div className="w-[190px] inline-flex items-baseline gap-1.5 border-b-2 border-[#E0D9CE] focus-within:border-[#EA2C00] transition-colors pb-1">
-                      <span className="text-[16px] text-[#A69A88]">$</span>
-                      <FormattedNumberInput value={p.price} onChange={p.setPrice}
-                        className="flex-1 min-w-0 h-auto border-0 rounded-none bg-transparent p-0 shadow-none text-[24px] md:text-[24px] font-bold text-[#1A1A1A] tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0"
-                        placeholder="a year, all in" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-abridge text-[46px] sm:text-[56px] leading-none text-[#EA2C00]">{roi.toFixed(1)}×</div>
-                    <div className="text-[12.5px] text-[#8C8073] mt-2">back for every dollar spent</div>
-                  </div>
-                  <div>
-                    <div className="font-abridge text-[46px] sm:text-[56px] leading-none text-[#1A1A1A]">{fmtShort(p.todayValue - p.price)}</div>
-                    <div className="text-[12.5px] text-[#8C8073] mt-2">left over each year, after paying for it</div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 className="font-abridge text-[24px] sm:text-[30px] leading-[1.16] text-[#1A1A1A] mt-3 max-w-[520px]">
-                  One more number: what would Abridge cost you?
-                </h2>
-                <p className="mt-3 text-[15px] leading-[1.6] text-[#8C8073] max-w-[500px]">
-                  Put in the annual price you have been quoted and we will show what
-                  is left after paying for it, and how many times over it pays back.
-                </p>
-                <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
-                  <div className="w-[250px] inline-flex items-baseline gap-2 border-b-[3px] border-[#EA2C00] pb-1.5">
-                    <span className="text-[22px] text-[#EA2C00] font-bold">$</span>
-                    <FormattedNumberInput value={p.price} onChange={p.setPrice}
-                      className="flex-1 min-w-0 h-auto border-0 rounded-none bg-transparent p-0 shadow-none text-[30px] md:text-[30px] font-bold text-[#1A1A1A] tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:not-italic placeholder:font-normal placeholder:text-[17px] placeholder:text-[#C0A79C]"
-                      placeholder="a year, all in" />
-                  </div>
+            <h2 className="font-abridge text-[22px] sm:text-[26px] leading-[1.2] text-[#1A1A1A] mt-3 max-w-[520px]">
+              {!priced
+                ? "One more number: what would Abridge cost you?"
+                : underwater
+                  ? "At that price, on these numbers, it does not pay for itself"
+                  : "What you keep, after paying for it"}
+            </h2>
+            {!priced && (
+              <p className="mt-3 text-[15px] leading-[1.6] text-[#8C8073] max-w-[500px]">
+                Put in the annual price you have been quoted and we will show what
+                is left after paying for it, and how many times over it pays back.
+              </p>
+            )}
 
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-8">
+              <div>
+                <div className="flex w-full items-baseline gap-1.5 border-b-2 border-[#EA2C00] pb-1">
+                  <span className="font-abridge text-[26px] text-[#A69A88] leading-none">$</span>
+                  <FormattedNumberInput value={p.price} onChange={p.setPrice}
+                    className="flex-1 min-w-0 h-auto border-0 rounded-none bg-transparent p-0 shadow-none font-abridge text-[38px] md:text-[38px] leading-none text-[#1A1A1A] tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:not-italic placeholder:text-[17px] placeholder:text-[#C0A79C]"
+                    placeholder="a year, all in" />
                 </div>
-              </>
+                <div className="text-[12.5px] text-[#8C8073] mt-3">what Abridge costs you a year</div>
+              </div>
+              {priced && (
+                <>
+                  <div>
+                    <div className="font-abridge text-[38px] leading-none text-[#EA2C00]">{roi.toFixed(1)}×</div>
+                    <div className="text-[12.5px] text-[#8C8073] mt-3">back for every dollar spent, using the cautious figure</div>
+                  </div>
+                  <div>
+                    <div className="font-abridge text-[38px] leading-none text-[#1A1A1A]">{fmtShort(net)}</div>
+                    {/* nothing is "left over" when the figure is negative */}
+                    <div className="text-[12.5px] text-[#8C8073] mt-3">{underwater ? "short each year, at this price" : "left over each year"}</div>
+                  </div>
+                </>
+              )}
+            </div>
+            {underwater && (
+              <p className="mt-7 text-[13.5px] leading-[1.6] text-[#8C8073] max-w-[560px]">
+                Either the price is above what these numbers support, or there
+                is more you could switch on that you have left off. Both are
+                worth another look.
+              </p>
             )}
           </div>
         </div>
@@ -1162,7 +1221,7 @@ function AnswerStep(p: {
         {dollarLevers.map((r) => (
           <span key={r.title} className="text-[13px] text-[#8C8073]">{r.title} <span className="font-abridge text-[15px] text-[#1A1A1A]">{fmtShort(r.value)}</span></span>
         ))}
-        {p.hoursReclaimed > 0 && <span className="text-[13px] text-[#8C8073]">Hours back <span className="font-abridge text-[15px] text-[#1A1A1A]">{fmtInt(p.hoursReclaimed)}</span></span>}
+        {!leadWithTime && p.hoursReclaimed > 0 && <span className="text-[13px] text-[#8C8073]">Hours back <span className="font-abridge text-[15px] text-[#1A1A1A]">{fmtInt(p.hoursReclaimed)}</span></span>}
       </div>
 
       <div className="mt-10 pt-7 border-t border-[#E8E2DA] flex items-center justify-end gap-4 flex-wrap">

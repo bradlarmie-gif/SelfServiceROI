@@ -233,6 +233,79 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByText("Scribe cost reduction")).toBeVisible();
     });
 
+    test("a solo practice is led by time, a group by money", async ({ page }) => {
+      // solo, with a before and after entered: hours lead
+      await enterCalculator(page);
+      await page.getByText("Outpatient", { exact: true }).first().click();
+      await pickAllGoals(page, "ffs");
+      const solo = page.locator("input");
+      await solo.nth(0).fill("Dr Ellis");
+      await solo.nth(1).fill("1");
+      await solo.nth(2).fill("3200");
+      await solo.nth(3).fill("80");
+      await page.getByRole("button", { name: /next: what changes/i }).click();
+      // Capacity leads for a solo reader, and holds the before/after minutes
+      await page.getByRole("button", { name: /^Capacity/ }).click();
+      const mins = page.locator("input");
+      await mins.nth(0).fill("7");
+      await mins.nth(1).fill("4");
+      // confirm the hours actually landed before advancing, or this test is
+      // asserting against a screen that never got the numbers
+      await expect(page.getByText(/clinician hours a year/)).toBeVisible();
+      await page.getByRole("button", { name: /see my number/i }).click();
+
+      await expect(page.getByText(/could give back/)).toBeVisible();
+      await expect(page.getByText(/hours a year/)).toBeVisible();
+      await expect(page.getByText(/back on a working day/)).toBeVisible();
+
+      // a group with the same shape still leads with the money
+      await enterCalculator(page);
+      await page.getByText("Outpatient", { exact: true }).first().click();
+      await pickAllGoals(page, "ffs");
+      const grp = page.locator("input");
+      await grp.nth(0).fill("Riverbend");
+      await grp.nth(1).fill("40");
+      await grp.nth(2).fill("30");
+      await grp.nth(3).fill("3200");
+      await grp.nth(4).fill("80");
+      await page.getByRole("button", { name: /next: what changes/i }).click();
+      // switch something on, or the group correctly lands on the empty state
+      await page.locator('button[role="switch"]').first().click();
+      await page.getByRole("button", { name: /see my number/i }).click();
+      await expect(page.getByText(/could be worth/)).toBeVisible();
+      await expect(page.getByText(/could give back/)).toHaveCount(0);
+    });
+
+    /**
+     * The price field used to sit inside a `priced ? (...) : (...)` ternary, so
+     * the FIRST digit flipped the branch, React unmounted the input, focus went
+     * to the body and the rest of the number was dropped. A price of "2"
+     * against $396K printed a 76,953x return. An input must never be unmounted
+     * by the state it drives, and only typing catches it.
+     */
+    test("typing a price keeps every digit and stays focused", async ({ page }) => {
+      await enterCalculator(page);
+      await page.getByText("Outpatient", { exact: true }).first().click();
+      await pickAllGoals(page, "ffs");
+      const acct = page.locator("input");
+      for (const [i, v] of [["Riverbend"], ["40"], ["30"], ["3200"], ["80"]].entries()) {
+        await acct.nth(i).fill(v[0]);
+      }
+      await page.getByRole("button", { name: /next: what changes/i }).click();
+      await page.locator('button[role="switch"]').first().click();
+      await page.getByRole("button", { name: /see my number/i }).click();
+
+      const price = page.locator('input[placeholder="a year, all in"]');
+      await price.click();
+      await page.keyboard.type("250000", { delay: 25 });
+      await expect(price, "the price field dropped characters").toHaveValue("250,000");
+      await expect(price, "focus left the price field while typing").toBeFocused();
+      // and the multiple must be sane, not the 76,953x a one-digit price gave
+      const body = await page.locator("body").innerText();
+      const multiple = Number(body.match(/([\d.]+)×/)?.[1] ?? -1);
+      expect(multiple, "return multiple is not believable").toBeLessThan(50);
+    });
+
     test("a full run produces a dollar answer", async ({ page }) => {
       await enterCalculator(page);
       await page.getByText("Outpatient", { exact: true }).first().click();
