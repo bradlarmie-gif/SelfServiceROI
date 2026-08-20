@@ -49,7 +49,10 @@ const fillAccount = async (page) => {
 
 const toCareSetting = async (page) => {
   await page.getByRole("button", { name: /estimate my value/i }).first().click({ timeout: 6000 });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
+  // the flow forks on who is asking; the layout checks walk the practice path
+  await page.getByTestId("audience-practice").click({ timeout: 6000 }).catch(() => {});
+  await page.waitForTimeout(400);
 };
 
 // The goals step decides how many sections the "what changes" step has, so the
@@ -253,6 +256,7 @@ try {
   await page.waitForTimeout(400);
   const enter = await page.$('[data-testid="button-enter-app"]');
   if (enter) { await enter.click(); await page.waitForTimeout(300); }
+  await page.click('[data-testid="audience-practice"]'); await page.waitForTimeout(300);
   await page.click('button:has-text("Inpatient")'); await page.waitForTimeout(250);
   await pickAllGoals(page);
   await page.click('button:has-text("Next: your numbers")'); await page.waitForTimeout(300);

@@ -90,19 +90,33 @@ const STEPS = ["Your goals", "Your numbers", "What changes", "Your number"];
 
 interface Props { onBack: () => void; onHome: () => void; }
 
+/**
+ * Who is asking, and why. This is the real fork, and it is not headcount: a
+ * solo practice owner is buying and wants the money question answered, while
+ * an employed doctor at a 500-clinician system has been told to use Abridge
+ * and wants to know what it does for their day. Same headcount, opposite
+ * question, and showing the second reader a return multiple is both irrelevant
+ * and the moment the tool starts to feel like it is selling at them.
+ */
+type Audience = "me" | "practice";
+
 export default function QuickRoiCalculator({ onBack, onHome }: Props) {
+  const [audience, setAudience] = useState<Audience | null>(null);
   const [setting, setSetting] = useState<SettingKey | null>(null);
   const [step, setStep] = useState(0); // 0 = goals, 1 = account, 2 = lift, 3 = answer
-  const inPicker = setting === null;
+  const inAudience = audience === null;
+  const inPicker = !inAudience && setting === null;
+  const forMe = audience === "me";
   // Every step change starts a new screen — always open it at the top. Without
   // this, advancing while scrolled down (e.g. Lift -> Answer) opens the next
   // screen mid-page. App-level scroll reset only fires on view changes, not on
   // these in-flow step changes.
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
-  }, [step, setting]);
+  }, [step, setting, audience]);
   const goBack = () => {
-    if (inPicker) onBack();
+    if (inAudience) onBack();
+    else if (inPicker) { setAudience(null); }
     else if (step > 0) setStep(step - 1);
     else { setSetting(null); setStep(0); }
   };
@@ -111,37 +125,89 @@ export default function QuickRoiCalculator({ onBack, onHome }: Props) {
     if (n === 1) { setSetting(null); setStep(0); }
     else setStep(n - 2);
   };
+  // The individual walk is three screens, not five: their setting, their day,
+  // and what they get back. No goals to pick, no drivers to switch on, no price.
+  const ME_STEPS = ["Your day", "What you get back"];
+  const stepLabels = forMe
+    ? ["Care setting", "Your day", "What you get back"]
+    : ["Care setting", "Your goals", "Your numbers", "What changes", "Your number"];
   return (
     <div className="min-h-screen bg-[#FDFCFA] text-[#5E534A] antialiased">
       <UnifiedHeader
         pathType="forecast"
         pathLabel=""
-        currentStep={inPicker ? 1 : step + 2}
-        totalSteps={5}
-        stepName={inPicker ? "Care setting" : STEPS[step]}
+        currentStep={inAudience ? 1 : inPicker ? 2 : step + 3}
+        totalSteps={forMe ? 3 : 5}
+        stepName={inAudience ? "Who this is for" : inPicker ? "Care setting" : (forMe ? ME_STEPS : STEPS)[step]}
         onBack={goBack}
         onHome={onHome}
         onStepClick={onStepClick}
-        stepLabels={["Care setting", "Your goals", "Your numbers", "What changes", "Your number"]}
+        stepLabels={stepLabels}
       />
       <style>{SLIDER_CSS}</style>
       <UnifiedHeaderSpacer />
       <div className="max-w-[760px] mx-auto px-5 sm:px-8">
-        {inPicker
-          ? <SettingPicker onPick={(s) => { setSetting(s); setStep(0); }} />
-          : <Wizard key={setting} setting={setting} step={step} setStep={setStep} onChangeSetting={() => { setSetting(null); setStep(0); }} />}
+        {inAudience ? (
+          <AudiencePicker onPick={(a) => { setAudience(a); setSetting(null); setStep(0); }} />
+        ) : setting === null ? (
+          <SettingPicker forMe={forMe} onPick={(s) => { setSetting(s); setStep(0); }} />
+        ) : (
+          <Wizard key={`${audience}-${setting}`} setting={setting} forMe={forMe} step={step} setStep={setStep}
+            onChangeSetting={() => { setSetting(null); setStep(0); }} />
+        )}
       </div>
     </div>
   );
 }
 
-function SettingPicker({ onPick }: { onPick: (s: SettingKey) => void }) {
+function AudiencePicker({ onPick }: { onPick: (a: Audience) => void }) {
+  const options: { k: Audience; title: string; blurb: string }[] = [
+    {
+      k: "me",
+      title: "It is for me",
+      blurb: "Someone has asked you to use Abridge, and you want to know what it does for your day.",
+    },
+    {
+      k: "practice",
+      title: "It is for my practice",
+      blurb: "You are weighing it up for a group, and you need to know what it is worth against what it costs.",
+    },
+  ];
+  return (
+    <div className="pt-12 sm:pt-16 pb-24">
+      <div className={EYEBROW}>ROI Calculator</div>
+      <h1 className="font-abridge text-[28px] sm:text-[34px] leading-[1.12] text-[#4A3F35] mt-4 max-w-[640px]">
+        First, who is this for?
+      </h1>
+      <p className="mt-5 text-[16px] leading-[1.55] text-[#8C8073] max-w-[540px]">
+        The two are different questions, so we ask different things. It takes
+        about a minute either way.
+      </p>
+      <div className="mt-12 border-t border-[#E8E2DA] max-w-[680px]">
+        {options.map((o) => (
+          <button key={o.k} onClick={() => onPick(o.k)} data-testid={`audience-${o.k}`}
+            className="group w-full text-left flex items-center justify-between gap-6 py-[26px] border-b border-[#E8E2DA] hover:pl-2 transition-all">
+            <div className="min-w-0">
+              <div className="font-abridge text-[24px] text-[#1A1A1A] group-hover:text-[#EA2C00] transition-colors leading-tight">{o.title}</div>
+              <div className="text-[13.5px] text-[#A69A88] mt-[5px] max-w-[460px] leading-[1.5]">{o.blurb}</div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-[#C9BDAD] group-hover:text-[#EA2C00] group-hover:translate-x-1 transition-all flex-shrink-0" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SettingPicker({ onPick, forMe }: { onPick: (s: SettingKey) => void; forMe: boolean }) {
   return (
     <div className="pt-12 sm:pt-16 pb-24">
       <div className={EYEBROW}>ROI Calculator</div>
       <h1 className="font-abridge text-[28px] sm:text-[34px] leading-[1.12] text-[#4A3F35] mt-4 max-w-[640px]">Where does most of your documentation happen?</h1>
       <p className="mt-5 text-[16px] leading-[1.55] text-[#8C8073] max-w-[520px]">
-        Pick one to start. Each setting is scored on its own drivers, so the questions after this are the ones that fit how you actually work.
+        {forMe
+          ? "Pick where you spend most of your time. The notes look different in each one, so the questions after this are the ones that fit."
+          : "Pick one to start. Each setting is scored on its own drivers, so the questions after this are the ones that fit how you actually work."}
       </p>
       <div className="mt-12 border-t border-[#E8E2DA] max-w-[680px]">
         {(Object.keys(SETTING_META) as SettingKey[]).map((k) => (
@@ -159,7 +225,7 @@ function SettingPicker({ onPick }: { onPick: (s: SettingKey) => void }) {
   );
 }
 
-function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingKey; step: number; setStep: (n: number) => void; onChangeSetting: () => void }) {
+function Wizard({ setting, forMe, step, setStep, onChangeSetting }: { setting: SettingKey; forMe: boolean; step: number; setStep: (n: number) => void; onChangeSetting: () => void }) {
   const meta = SETTING_META[setting];
   const d = meta.defaults;
   const isNursing = !!meta.isNursing;
@@ -195,6 +261,14 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
   // "does this cost less than my scribe, and do I get home earlier", so time
   // leads and the revenue drivers support it, rather than the other way round.
   const isSolo = totalProviders === 1;
+  useEffect(() => {
+    if (!forMe) return;
+    setTotalProviders(1);
+    setOnAbridge(1);
+    // the volume question already asks how many they would USE it for, so the
+    // share is folded into that number rather than asked twice
+    setUtilNow(100);
+  }, [forMe]);
 
   // Documentation minutes in notes (before -> after). Feeds Patient Access
   // dollars (outpatient) and the reclaimed-hours proof (all physician settings).
@@ -385,7 +459,46 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
         {meta.label} <button onClick={onChangeSetting} className="text-[#B4A896] hover:text-[#EA2C00] transition-colors">· change</button>
       </div>
 
-      {step === 0 && (
+      {forMe && step === 0 && (
+        <StepShell
+          title="How much of your day goes on notes?"
+          sub="Three questions. Rough numbers are fine, and you can change them after.">
+          <div className="border-t border-[#E8E2DA]">
+            <Row
+              label={`About how many ${meta.encWord} a year would you use Abridge for?`}
+              hint={`not every ${meta.encWord.replace(/s$/, "")} suits it, so this is usually fewer than you see in total`}>
+              <NumInput value={encPerProvider} onChange={setEncPerProvider} placeholder={`e.g., ${meta.volumePlaceholder ?? "2,500"}`} />
+            </Row>
+            {meta.timeMetric && (
+              <>
+                <Row label={`How long does a note take you today?`} hint="start to signed, on a typical one">
+                  <NumInput value={timeBefore} onChange={setTimeBefore} step={0.1} suffix="min"
+                    placeholder={String(meta.timeMetric.before)} />
+                </Row>
+                <Row label="And with Abridge?" hint="your estimate; the faded number is what we typically see">
+                  <NumInput value={timeAfter} onChange={setTimeAfter} step={0.1} suffix="min"
+                    placeholder={String(meta.timeMetric.after)} />
+                </Row>
+              </>
+            )}
+          </div>
+          <p className="mt-7 text-[15px] leading-[1.6] text-[#5E534A]">
+            {hoursReclaimed > 0 ? (
+              <>That is <span className="font-abridge text-[#1A1A1A]">{fmtInt(hoursReclaimed)}</span> hours a year off your notes.</>
+            ) : (
+              <span className="text-[#A69A88]">Fill in the three above and we will work out what it comes to.</span>
+            )}
+          </p>
+          <NavRow onNext={() => setStep(1)} nextLabel="See what I get back" disabled={hoursReclaimed <= 0} />
+        </StepShell>
+      )}
+
+      {forMe && step === 1 && (
+        <MeAnswer hours={hoursReclaimed} encWord={meta.encWord} encounters={Math.round(encToday)}
+          before={timeBefore} after={timeAfter} onBack={() => setStep(0)} />
+      )}
+
+      {!forMe && step === 0 && (
         <StepShell
           title="What are you hoping Abridge fixes?"
           sub="Pick everything that matters to you, one or more. Only what you choose gets asked about, and only what you choose can add to the number.">
@@ -467,7 +580,7 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
         </StepShell>
       )}
 
-      {step === 1 && (
+      {!forMe && step === 1 && (
         <StepShell title={`Now, how big is your ${orgWord}?`} sub="Rough numbers are fine. Nothing here is locked, and you can come back and change any of it.">
           <div className="border-t border-[#E8E2DA]">
             <Row label={`${orgWord.charAt(0).toUpperCase()}${orgWord.slice(1)} name`} hint="only used to label your summary" grow>
@@ -512,7 +625,7 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
         </StepShell>
       )}
 
-      {step === 2 && (
+      {!forMe && step === 2 && (
         <StepShell title="So, what would actually change?" sub={`Turn on only the things you believe would move in your ${orgWord}, and set each one yourself. Anything left off counts as zero.`}>
           {/* section tabs — navigate between the domains */}
           <div className="flex items-center gap-7 border-b border-[#E8E2DA] flex-wrap">
@@ -550,7 +663,7 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
         </StepShell>
       )}
 
-      {step === 3 && (
+      {!forMe && step === 3 && (
         <AnswerStep practiceName={practiceName} encWord={meta.encWord} breakdown={breakdown} todayValue={todayValue} todayValueFull={todayValueFull} potentialValueFull={potentialValueFull} providerWord={meta.providerWord} isSolo={isSolo}
           showAdoptionDial={totalProviders > onAbridge}
           potentialValue={potentialValue} headroom={headroom} hoursReclaimed={hoursReclaimed}
@@ -996,6 +1109,59 @@ function NavRow({ onNext, nextLabel, disabled }: { onNext: () => void; nextLabel
         className={`inline-flex items-center gap-2 rounded-full text-[14px] font-bold px-7 py-3.5 transition-colors ${disabled ? "bg-[#E5DDD2] text-[#AFA394] cursor-not-allowed" : "bg-[#EA2C00] text-white hover:bg-[#d12800]"}`}>
         {nextLabel} <ArrowRight className="w-4 h-4" />
       </button>
+    </div>
+  );
+}
+
+/**
+ * What an individual gets back.
+ *
+ * No price, no multiple, no range, no drivers. This reader was told to use
+ * Abridge by someone else and is asking what it does for their day, so a
+ * return on investment is not their question and putting one in front of them
+ * is the moment the tool starts selling at them. Hours, what those hours look
+ * like in a week, and an honest note about what we are not counting.
+ */
+function MeAnswer(p: { hours: number; encWord: string; encounters: number; before: number; after: number; onBack: () => void }) {
+  const hoursShown = useCountUp(p.hours);
+  const perDay = Math.round((p.hours * 60) / 232);
+  const perWeek = Math.round((p.hours / 46) * 10) / 10;
+  const saved = Math.max(0, p.before - p.after);
+  return (
+    <div>
+      <h1 className="font-abridge text-[26px] sm:text-[32px] leading-[1.14] text-[#4A3F35] mt-4">On your own numbers, that is</h1>
+      <div className="font-abridge text-[66px] sm:text-[92px] leading-[0.88] text-[#EA2C00] mt-3 flex flex-wrap items-baseline gap-x-4">
+        <span>{fmtInt(hoursShown)}</span>
+        <span className="text-[26px] text-[#9A8C7A] font-normal">hours a year</span>
+      </div>
+
+      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-8 max-w-[620px]">
+        <div>
+          <div className="font-abridge text-[38px] leading-none text-[#1A1A1A]">{perDay} min</div>
+          <div className="text-[12.5px] text-[#8C8073] mt-3">back on a working day</div>
+        </div>
+        <div>
+          <div className="font-abridge text-[38px] leading-none text-[#1A1A1A]">{perWeek} hrs</div>
+          <div className="text-[12.5px] text-[#8C8073] mt-3">back in a working week</div>
+        </div>
+      </div>
+
+      <div className="mt-12 pt-7 border-t border-[#E8E2DA]">
+        <div className={EYEBROW}>How that is worked out</div>
+        <p className="mt-3 text-[15px] leading-[1.75] text-[#5E534A] max-w-[600px]">
+          <Mono>{saved.toFixed(1)} min</Mono> off each note, across the{" "}
+          <Mono>{fmtInt(p.encounters)}</Mono> {p.encWord} a year you said you would
+          use it for. Nothing else is in that figure.
+        </p>
+        <p className="mt-4 text-[13.5px] leading-[1.6] text-[#8C8073] max-w-[600px]">
+          What that time becomes, more patients or an earlier finish, is your
+          call, so we have left it as hours rather than putting a dollar on it.
+        </p>
+      </div>
+
+      <div className="mt-10 pt-7 border-t border-[#E8E2DA] flex items-center justify-end gap-4 flex-wrap">
+        <button onClick={p.onBack} className="text-[14px] font-semibold text-[#A69A88] hover:text-[#1A1A1A] transition-colors">Change my numbers</button>
+      </div>
     </div>
   );
 }

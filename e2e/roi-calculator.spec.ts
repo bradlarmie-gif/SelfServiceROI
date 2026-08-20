@@ -22,9 +22,11 @@ async function expectNoHorizontalOverflow(page: Page, where: string) {
   expect(scrollW, `${where}: overflows — scrollWidth ${scrollW} > viewport ${clientW}`).toBeLessThanOrEqual(clientW + 1);
 }
 
+/** Enter the practice (ROI) path: the flow now forks on who is asking. */
 async function enterCalculator(page: Page) {
   await page.goto("/");
   await page.getByTestId("button-enter-app").click();
+  await page.getByTestId("audience-practice").click();
   await expect(page.getByText("Outpatient", { exact: true })).toBeVisible();
 }
 
@@ -46,13 +48,43 @@ for (const vp of VIEWPORTS) {
   test.describe(`${vp.name}`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
-    test("landing screen leads straight into the calculator", async ({ page }) => {
+    test("landing screen leads into the fork, then the calculator", async ({ page }) => {
       await page.goto("/");
       await expect(page.getByTestId("button-enter-app")).toBeVisible();
       await expectNoHorizontalOverflow(page, "landing");
       await page.getByTestId("button-enter-app").click();
+      // who is asking decides which walk they get
+      await expect(page.getByTestId("audience-me")).toBeVisible();
+      await expect(page.getByTestId("audience-practice")).toBeVisible();
+      await expectNoHorizontalOverflow(page, "audience fork");
+      await page.getByTestId("audience-practice").click();
       await expect(page.getByText("Outpatient", { exact: true })).toBeVisible();
       await expectNoHorizontalOverflow(page, "care setting");
+    });
+
+    /**
+     * The individual was told to use Abridge by someone else. A return multiple
+     * is not their question, and putting one in front of them is where the tool
+     * would start selling at them.
+     */
+    test("the individual walk never shows a price or a return", async ({ page }) => {
+      await page.goto("/");
+      await page.getByTestId("button-enter-app").click();
+      await page.getByTestId("audience-me").click();
+      await page.getByText("Outpatient", { exact: true }).first().click();
+
+      const q = page.locator("input");
+      await expect(q, "the individual walk should ask three things, not five").toHaveCount(3);
+      await q.nth(0).fill("3000");
+      await q.nth(1).fill("7");
+      await q.nth(2).fill("4");
+      await page.getByRole("button", { name: /see what i get back/i }).click();
+
+      await expect(page.getByText(/hours a year/)).toBeVisible();
+      await expect(page.getByText(/back on a working day/)).toBeVisible();
+      const body = await page.locator("body").innerText();
+      expect(body, "the individual walk must not price or sell").not.toMatch(/×|what Abridge costs you|left over each year|not yet counted/);
+      expect(body, "no dollar figure belongs on this screen").not.toMatch(/\$[\d]/);
     });
 
     test("every care setting offers its own goals, and cannot be skipped", async ({ page }) => {

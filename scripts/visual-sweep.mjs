@@ -64,7 +64,9 @@ async function driveCalculator(page, setting, { stopAt = "answer" } = {}) {
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: /estimate my value|calculate your roi/i }).first().click({ timeout: 6000 });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
+  await page.getByTestId("audience-practice").click({ timeout: 6000 }).catch(() => {});
+  await page.waitForTimeout(400);
   if (stopAt === "setting") return `${setting} — care setting`;
 
   const LABEL = { outpatient: "Outpatient", ed: "Emergency", inpatient: "Inpatient", nursing: "Nursing" };
