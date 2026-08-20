@@ -172,6 +172,40 @@ for (const vp of VIEWPORTS) {
       ).toBeEnabled();
     });
 
+    /**
+     * The tab counter and the card list are two views of the same set. They
+     * used to filter independently, so the payer answer hid the risk-capture
+     * card while the tab still counted it: "3 to switch on" above two cards.
+     */
+    test("the tab count matches the cards actually shown", async ({ page }) => {
+      await enterCalculator(page);
+      await page.getByText("Outpatient", { exact: true }).first().click();
+      await page.getByTestId("goal-revenue").click();
+      await page.getByTestId("payer-ffs").click();   // hides risk capture
+      await page.getByRole("button", { name: /next: your numbers/i }).click();
+      const inputs = page.locator("input");
+      for (const [i, v] of [["Riverbend"], ["60"], ["49"], ["2400"], ["68"]].entries()) {
+        await inputs.nth(i).fill(v[0]);
+      }
+      await page.getByRole("button", { name: /next: what changes/i }).click();
+
+      const tab = page.getByRole("button", { name: /^Revenue/ });
+      const label = (await tab.innerText()).trim();
+      const claimed = Number(label.match(/(\d+) to switch on/)?.[1] ?? -1);
+      const shown = await page.locator('button[role="switch"]').count();
+      expect(claimed, `tab says "${label}" but ${shown} cards are on screen`).toBe(shown);
+    });
+
+    test("only one Back on a step, in the header", async ({ page }) => {
+      await enterCalculator(page);
+      await page.getByText("Outpatient", { exact: true }).first().click();
+      await pickAllGoals(page);
+      await expect(
+        page.getByRole("button", { name: /^Back$/ }),
+        "the header owns Back; a second one at the bottom of the step is duplication",
+      ).toHaveCount(1);
+    });
+
     test("a full run produces a dollar answer", async ({ page }) => {
       await enterCalculator(page);
       await page.getByText("Outpatient", { exact: true }).first().click();

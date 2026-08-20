@@ -135,12 +135,17 @@ export function UnifiedHeader({
           {showBack && (
             <>
               <div className="w-px h-5 bg-[#E8E2DA] hidden sm:block" />
+              {/* The word is hidden below sm, which left a bare arrow with no
+                  accessible name on every phone: a screen reader announced an
+                  unlabelled button. The label goes on the control itself so it
+                  is named whether or not the text is visible. */}
               <button
                 onClick={handleBack}
+                aria-label="Back"
                 className="flex items-center gap-1 text-[#8C8073] hover:text-[#1A1A1A] transition-colors p-1.5 -ml-1 rounded-md hover:bg-[#F5F0E8]"
                 data-testid="button-back"
               >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
                 <span className="text-sm font-medium hidden sm:inline">Back</span>
               </button>
             </>

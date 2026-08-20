@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, ChevronDown, Download } from "lucide-react";
 import { QUICK_ROI_PDF_STORAGE_KEY } from "@/components/forecast/QuickRoiEditorialPdf";
 import { FormattedNumberInput } from "@/components/FormattedNumberInput";
@@ -302,6 +302,18 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
   );
   const [payerModel, setPayerModel] = useState<PayerModel | "both" | null>(null);
   const revenuePicked = goals.includes("Revenue");
+  const visibleDrivers = useCallback(
+    (dom: Domain) =>
+      DRIVERS[setting]
+        .filter((dr) => dr.domain === dom)
+        .filter((dr) => {
+          if (!dr.payerModel || !hasPayerSplit) return true;
+          if (payerModel === "both" || payerModel === null) return true;
+          return dr.payerModel === payerModel;
+        }),
+    [setting, hasPayerSplit, payerModel],
+  );
+
   // Switching the payer answer must also switch OFF anything it hides, or a
   // driver the practice can no longer see keeps contributing to their total.
   useEffect(() => {
@@ -324,16 +336,19 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
   );
   useEffect(() => { setLiftTab(0); }, [goals.length]);
   const tabSummary = (dom: Domain): string => {
-    const dollar = DRIVERS[setting]
-      .filter((dr) => dr.domain === dom && enabled[dr.id])
+    const cards = visibleDrivers(dom);
+    const dollar = cards
+      .filter((dr) => enabled[dr.id])
       .reduce((s, dr) => s + (today.valueById[dr.id] ?? 0), 0);
     if (dollar > 0) return fmtShort(dollar);
     // Capacity is a signal, never a toggle: it shows hours, or says it is waiting
     // on the minutes. Everything else says how many cards are still off. One
     // vocabulary, so two null states are never ambiguous side by side.
     if (dom === "Capacity" && !isNursing) return hoursReclaimed > 0 ? `${fmtInt(hoursReclaimed)} hrs` : "Add minutes";
-    const cards = DRIVERS[setting].filter((dr) => dr.domain === dom).length;
-    return cards > 0 ? `${cards} to switch on` : "Nothing on";
+    // something is on but has no numbers in it yet: say that, do not claim it
+    // is still waiting to be switched on
+    if (cards.some((dr) => enabled[dr.id])) return "Add numbers";
+    return cards.length > 0 ? `${cards.length} to switch on` : "Nothing on";
   };
   const activeDomain = domains[Math.min(liftTab, Math.max(0, domains.length - 1))];
 
@@ -477,7 +492,7 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
               <span className="text-[#A69A88]">Fill in the numbers above and we'll show how many {meta.encWord} your figure will be built on.</span>
             )}
           </p>
-          <NavRow onBack={() => setStep(0)} onNext={() => setStep(2)} nextLabel="Next: what changes" disabled={encToday <= 0} />
+          <NavRow onNext={() => setStep(2)} nextLabel="Next: what changes" disabled={encToday <= 0} />
         </StepShell>
       )}
 
@@ -505,13 +520,7 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
                 dollarized={setting === "outpatient"}
                 placeholderBefore={String(meta.timeMetric.before)} placeholderAfter={String(meta.timeMetric.after)} />
             )}
-            {DRIVERS[setting].filter((dr) => dr.domain === activeDomain).filter((dr) => {
-              // a purely fee-for-service practice never sees the risk-capture
-              // card, and vice versa; untagged drivers apply either way
-              if (!dr.payerModel || !hasPayerSplit) return true;
-              if (payerModel === "both" || payerModel === null) return true;
-              return dr.payerModel === payerModel;
-            }).map((dr) => (
+            {visibleDrivers(activeDomain).map((dr) => (
               <DriverCard key={dr.id} driver={dr} vals={vals} setVal={setVal}
                 blockedBy={dr.dependsOn && !enabled[dr.dependsOn]
                   ? (DRIVERS[setting].find((d) => d.id === dr.dependsOn)?.title ?? null)
@@ -521,7 +530,7 @@ function Wizard({ setting, step, setStep, onChangeSetting }: { setting: SettingK
                 value={today.valueById[dr.id] ?? 0} summary={today.summaryById[dr.id] ?? ""} />
             ))}
           </div>
-          <NavRow onBack={() => setStep(1)} onNext={() => setStep(3)} nextLabel="See my number" />
+          <NavRow onNext={() => setStep(3)} nextLabel="See my number" />
         </StepShell>
       )}
 
@@ -963,10 +972,9 @@ function TimeBackBlock({ table, encWord, before, after, onBefore, onAfter, encTo
   );
 }
 
-function NavRow({ onBack, onNext, nextLabel, disabled }: { onBack?: () => void; onNext: () => void; nextLabel: string; disabled?: boolean }) {
+function NavRow({ onNext, nextLabel, disabled }: { onNext: () => void; nextLabel: string; disabled?: boolean }) {
   return (
-    <div className="flex items-center justify-between mt-10">
-      {onBack ? <button onClick={onBack} className="text-[14px] font-semibold text-[#A69A88] hover:text-[#1A1A1A] transition-colors">Back</button> : <span />}
+    <div className="flex items-center justify-end mt-10">
       <button onClick={onNext} disabled={disabled}
         className={`inline-flex items-center gap-2 rounded-full text-[14px] font-bold px-7 py-3.5 transition-colors ${disabled ? "bg-[#E5DDD2] text-[#AFA394] cursor-not-allowed" : "bg-[#EA2C00] text-white hover:bg-[#d12800]"}`}>
         {nextLabel} <ArrowRight className="w-4 h-4" />
@@ -1140,8 +1148,7 @@ function AnswerStep(p: {
         {p.hoursReclaimed > 0 && <span className="text-[13px] text-[#8C8073]">Hours back <span className="font-abridge text-[15px] text-[#1A1A1A]">{fmtInt(p.hoursReclaimed)}</span></span>}
       </div>
 
-      <div className="mt-10 pt-7 border-t border-[#E8E2DA] flex items-center justify-between gap-4 flex-wrap">
-        <button onClick={p.onBack} className="text-[14px] font-semibold text-[#A69A88] hover:text-[#1A1A1A] transition-colors rounded outline-none focus-visible:ring-2 focus-visible:ring-[#EA2C00] focus-visible:ring-offset-2">Back to what changes</button>
+      <div className="mt-10 pt-7 border-t border-[#E8E2DA] flex items-center justify-end gap-4 flex-wrap">
         <button onClick={p.onExport} className="inline-flex items-center gap-2 rounded-full bg-[#EA2C00] text-white text-[14px] font-bold px-7 py-3.5 hover:bg-[#d12800] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#EA2C00] focus-visible:ring-offset-2">
           <Download className="w-4 h-4" /> Save my summary
         </button>
