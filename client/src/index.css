@@ -1,0 +1,1025 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Abridge Custom Font */
+@font-face {
+  font-family: 'Abridge';
+  src: url('./assets/fonts/abridge.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* LIGHT MODE */
+:root {
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .05);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .08);
+  --background: 210 20% 98%;
+  --foreground: 210 20% 12%;
+  --border: 210 15% 91%;
+  --card: 210 18% 96%;
+  --card-foreground: 210 18% 14%;
+  --card-border: 210 16% 93%;
+  --sidebar: 210 17% 94%;
+  --sidebar-foreground: 210 17% 16%;
+  --sidebar-border: 210 15% 90%;
+  --sidebar-primary: 211 85% 45%;
+  --sidebar-primary-foreground: 211 85% 98%;
+  --sidebar-accent: 210 14% 88%;
+  --sidebar-accent-foreground: 210 14% 20%;
+  --sidebar-ring: 211 80% 50%;
+  --popover: 210 16% 92%;
+  --popover-foreground: 210 16% 18%;
+  --popover-border: 210 14% 88%;
+  --primary: 211 85% 45%;
+  --primary-foreground: 211 85% 98%;
+  --secondary: 210 12% 86%;
+  --secondary-foreground: 210 12% 22%;
+  --muted: 210 10% 88%;
+  --muted-foreground: 210 10% 35%;
+  --accent: 210 8% 90%;
+  --accent-foreground: 210 8% 24%;
+  --destructive: 0 72% 42%;
+  --destructive-foreground: 0 72% 98%;
+  --input: 210 20% 75%;
+  /* Brand coral (#EA2C00), not the leftover shadcn blue, so every default focus
+     ring across the app reads on-brand instead of browser-blue. */
+  --ring: 11 100% 46%;
+  --chart-1: 211 85% 45%;
+  --chart-2: 195 75% 40%;
+  --chart-3: 160 65% 38%;
+  --chart-4: 35 80% 48%;
+  --chart-5: 280 70% 42%;
+  --font-sans: 'Manrope', Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: JetBrains Mono, monospace;
+  --font-heading: 'Abridge', Inter, sans-serif;
+  --radius: .5rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(210 15% 20% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(210 15% 20% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(210 15% 20% / 0.00), 0px 1px 2px -1px hsl(210 15% 20% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(210 15% 20% / 0.00), 0px 1px 2px -1px hsl(210 15% 20% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(210 15% 20% / 0.00), 0px 2px 4px -1px hsl(210 15% 20% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(210 15% 20% / 0.00), 0px 4px 6px -1px hsl(210 15% 20% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(210 15% 20% / 0.00), 0px 8px 10px -1px hsl(210 15% 20% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(210 15% 20% / 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+/* Fallback for older browsers */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+.dark {
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
+  --background: 210 18% 8%;
+  --foreground: 210 18% 92%;
+  --border: 210 15% 16%;
+  --card: 210 16% 10%;
+  --card-foreground: 210 16% 90%;
+  --card-border: 210 14% 12%;
+  --sidebar: 210 15% 12%;
+  --sidebar-foreground: 210 15% 88%;
+  --sidebar-border: 210 13% 14%;
+  --sidebar-primary: 211 80% 55%;
+  --sidebar-primary-foreground: 211 80% 98%;
+  --sidebar-accent: 210 12% 16%;
+  --sidebar-accent-foreground: 210 12% 85%;
+  --sidebar-ring: 211 75% 60%;
+  --popover: 210 14% 14%;
+  --popover-foreground: 210 14% 86%;
+  --popover-border: 210 12% 16%;
+  --primary: 211 80% 55%;
+  --primary-foreground: 211 80% 98%;
+  --secondary: 210 10% 18%;
+  --secondary-foreground: 210 10% 82%;
+  --muted: 210 8% 20%;
+  --muted-foreground: 210 8% 65%;
+  --accent: 210 6% 22%;
+  --accent-foreground: 210 6% 80%;
+  --destructive: 0 68% 48%;
+  --destructive-foreground: 0 68% 98%;
+  --input: 210 18% 30%;
+  --ring: 11 100% 55%;
+  --chart-1: 211 80% 65%;
+  --chart-2: 195 70% 60%;
+  --chart-3: 160 60% 58%;
+  --chart-4: 35 75% 62%;
+  --chart-5: 280 65% 62%;
+  --shadow-2xs: 0px 2px 0px 0px hsl(210 15% 5% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(210 15% 5% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(210 15% 5% / 0.00), 0px 1px 2px -1px hsl(210 15% 5% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(210 15% 5% / 0.00), 0px 1px 2px -1px hsl(210 15% 5% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(210 15% 5% / 0.00), 0px 2px 4px -1px hsl(210 15% 5% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(210 15% 5% / 0.00), 0px 4px 6px -1px hsl(210 15% 5% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(210 15% 5% / 0.00), 0px 8px 10px -1px hsl(210 15% 5% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(210 15% 5% / 0.00);
+
+/* Fallback for older browsers */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+
+}
+
+/**
+ * Using the elevate system.
+ * Automatic contrast adjustment.
+ *
+ * <element className="hover-elevate" />
+ * <element className="active-elevate-2" />
+ *
+ * // Using the tailwind utility when a data attribute is "on"
+ * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
+ * // Or manually controlling the toggle state
+ * <element className="toggle-elevate toggle-elevated" />
+ *
+ * Elevation systems have to handle many states.
+ * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
+ * - toggled or not
+ * - focused or not (this is not handled with these utilities)
+ *
+ * Even without handling focused or not, this is six possible combinations that
+ * need to be distinguished from eachother visually.
+ */
+@layer utilities {
+
+  /* Abridge brand font for hero headings */
+  .font-abridge {
+    font-family: var(--font-heading);
+  }
+
+  /* Hide ugly search cancel button in Chrome until we can style it properly */
+  input[type="search"]::-webkit-search-cancel-button {
+    @apply hidden;
+  }
+
+  /* Placeholder styling for contentEditable div */
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+
+  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
+   * buttons/badges can remove the automatic brightness adjustment on interactions
+   * and program their own. */
+  .no-default-hover-elevate {}
+
+  .no-default-active-elevate {}
+
+
+  /**
+   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
+   * This way they can stack/compound. Both will overlap the parent's borders!
+   * So borders will be automatically adjusted both on toggle, and hover/active,
+   * and they will be compounded.
+   */
+  .toggle-elevate::before,
+  .toggle-elevate-2::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    /*border-radius: inherit;   match rounded corners */
+    border-radius: inherit;
+    z-index: -1;
+    /* sits behind content but above backdrop */
+  }
+
+  .toggle-elevate.toggle-elevated::before {
+    background-color: var(--elevate-2);
+  }
+
+  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
+  .border.toggle-elevate::before {
+    inset: -1px;
+  }
+
+  /* Does not work on elements with overflow:hidden! */
+  .hover-elevate:not(.no-default-hover-elevate),
+  .active-elevate:not(.no-default-active-elevate),
+  .hover-elevate-2:not(.no-default-hover-elevate),
+  .active-elevate-2:not(.no-default-active-elevate) {
+    position: relative;
+    z-index: 0;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate)::after,
+  .active-elevate:not(.no-default-active-elevate)::after,
+  .hover-elevate-2:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:not(.no-default-active-elevate)::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    /*border-radius: inherit;   match rounded corners */
+    border-radius: inherit;
+    z-index: 999;
+    /* sits in front of content */
+  }
+
+  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-1);
+  }
+
+  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-2);
+  }
+
+  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
+    inset: -1px;
+  }
+}
+
+/* Live Receipt Animations */
+.receipt-value-updated {
+  animation: highlight-value 400ms ease-out;
+}
+
+@keyframes highlight-value {
+  0% { background-color: transparent; }
+  30% { background-color: hsl(48 96% 89%); }
+  100% { background-color: transparent; }
+}
+
+.dark .receipt-value-updated {
+  animation: highlight-value-dark 400ms ease-out;
+}
+
+@keyframes highlight-value-dark {
+  0% { background-color: transparent; }
+  30% { background-color: hsl(48 60% 25%); }
+  100% { background-color: transparent; }
+}
+
+.receipt-major-value {
+  transition: transform 200ms ease-out;
+}
+
+.receipt-major-value.receipt-value-updated {
+  animation: highlight-value 400ms ease-out, pulse-value 200ms ease-out;
+}
+
+@keyframes pulse-value {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Tabular numbers for consistent alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Landing Page Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-animate-card {
+  animation: fadeInUp 600ms ease-out;
+  animation-fill-mode: both;
+}
+
+.landing-animate-headline {
+  animation: fadeInUp 600ms ease-out 100ms;
+  animation-fill-mode: both;
+}
+
+.landing-animate-subtitle-1 {
+  animation: fadeInUp 600ms ease-out 200ms;
+  animation-fill-mode: both;
+}
+
+.landing-animate-subtitle-2 {
+  animation: fadeInUp 600ms ease-out 300ms;
+  animation-fill-mode: both;
+}
+
+.landing-animate-button {
+  animation: fadeInUp 600ms ease-out 400ms;
+  animation-fill-mode: both;
+}
+
+.landing-animate-trust {
+  animation: fadeInUp 600ms ease-out 500ms;
+  animation-fill-mode: both;
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .landing-animate-card,
+  .landing-animate-headline,
+  .landing-animate-subtitle-1,
+  .landing-animate-subtitle-2,
+  .landing-animate-button,
+  .landing-animate-trust {
+    animation: none;
+  }
+}
+
+/* Headline-style input — overrides the iOS-zoom-prevention 16px rule */
+.headline-input {
+  font-size: clamp(2rem, 5vw, 4rem) !important;
+}
+.headline-input::placeholder {
+  color: #CCCCCC;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(232, 83, 47, 0.2);
+  color: #111827;
+}
+
+/* Expansion Calculator Styles */
+
+/* Year Card Gradients */
+.year-card-1 {
+  border-left: 6px solid #f59e0b;
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.3) 0%, transparent 100%);
+}
+
+.year-card-2 {
+  border-left: 6px solid #EA2C00;
+  background: linear-gradient(135deg, rgba(240, 51, 25, 0.05) 0%, transparent 100%);
+}
+
+.year-card-3 {
+  border-left: 6px solid #0E9F6E;
+  background: linear-gradient(135deg, rgba(14, 159, 110, 0.05) 0%, transparent 100%);
+}
+
+.dark .year-card-1 {
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.08) 0%, transparent 100%);
+}
+
+.dark .year-card-2 {
+  background: linear-gradient(135deg, rgba(240, 51, 25, 0.1) 0%, transparent 100%);
+}
+
+.dark .year-card-3 {
+  background: linear-gradient(135deg, rgba(14, 159, 110, 0.1) 0%, transparent 100%);
+}
+
+/* Driver Progress Badge Animation */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(240, 51, 25, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(240, 51, 25, 0);
+  }
+}
+
+.driver-badge-active {
+  animation: pulseGlow 2s infinite;
+}
+
+/* Maturity Stage Indicators */
+.maturity-stage-ramp {
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.maturity-stage-mature {
+  background: linear-gradient(90deg, #EA2C00 0%, #f97316 100%);
+}
+
+.maturity-stage-full {
+  background: linear-gradient(90deg, #0E9F6E 0%, #34d399 100%);
+}
+
+/* Insight Cards */
+.insight-warning {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.insight-success {
+  background: linear-gradient(135deg, rgba(14, 159, 110, 0.1) 0%, rgba(14, 159, 110, 0.05) 100%);
+  border: 1px solid rgba(14, 159, 110, 0.3);
+}
+
+.dark .insight-warning {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.05) 100%);
+}
+
+.dark .insight-success {
+  background: linear-gradient(135deg, rgba(14, 159, 110, 0.15) 0%, rgba(14, 159, 110, 0.05) 100%);
+}
+
+/* Value Breakdown Table */
+.value-breakdown-row:nth-child(odd) {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.dark .value-breakdown-row:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Cumulative Summary Highlight */
+.cumulative-highlight {
+  background: linear-gradient(135deg, rgba(14, 159, 110, 0.08) 0%, rgba(14, 159, 110, 0.03) 100%);
+  border: 2px solid #0E9F6E;
+}
+
+.dark .cumulative-highlight {
+  background: linear-gradient(135deg, rgba(14, 159, 110, 0.15) 0%, rgba(14, 159, 110, 0.05) 100%);
+}
+
+/* Custom slider with Abridge orange */
+.slider-orange {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 4px;
+  outline: none;
+}
+
+.slider-orange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #EA2C00;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.slider-orange::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.slider-orange::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #EA2C00;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.slider-orange::-moz-range-track {
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 4px;
+}
+
+/* Premium Typography */
+.headline-xl {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.headline-lg {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+.subheadline {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #6B7280;
+  line-height: 1.4;
+}
+
+.hero-number {
+  font-size: 3.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.gap-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #EA2C00;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Premium Micro-interactions */
+.btn-premium {
+  transition: all 0.2s ease-out;
+}
+
+.btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-premium {
+  transition: all 0.25s ease-out;
+}
+
+.card-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.selection-pulse {
+  animation: selectionPulse 0.3s ease-out;
+}
+
+@keyframes selectionPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Page transition animations */
+.page-enter {
+  animation: pageEnter 0.3s ease-out;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile-first responsive touch targets */
+@media (max-width: 768px) {
+  .touch-target {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+  
+  .slider-touch {
+    height: 56px;
+  }
+  
+  .card-mobile {
+    padding: 24px;
+  }
+}
+
+/* Value Driver card animations */
+@keyframes subtle-glow {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(234, 44, 0, 0);
+  }
+  50% { 
+    box-shadow: 0 0 0 6px rgba(234, 44, 0, 0.15);
+  }
+}
+
+/* Geometric pattern animations for Abridge branding */
+@keyframes geometricShift {
+  0% {
+    background-position: 0 0, 0 0;
+  }
+  100% {
+    background-position: 20px 20px, -20px 20px;
+  }
+}
+
+@keyframes glowSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ========================================
+   GLOBAL RESPONSIVE STYLES
+   ======================================== */
+
+/* Prevent horizontal scroll + iOS text scaling fix */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Safe area inset for iPhone notch / home indicator */
+body {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent iOS zoom on input focus (inputs < 16px trigger zoom) */
+@media (max-width: 819px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Mobile touch target utility class - apply via component */
+@media (max-width: 767px) {
+  .touch-target-mobile {
+    min-height: 44px;
+  }
+}
+
+/* Chart container - horizontal scroll on mobile */
+@media (max-width: 767px) {
+  .recharts-responsive-container {
+    min-width: 100%;
+  }
+  
+  .recharts-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Slider touch-friendly */
+@media (max-width: 767px) {
+  input[type="range"] {
+    height: 8px;
+    -webkit-appearance: none;
+    background: transparent;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+    -webkit-appearance: none;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: -10px;
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+}
+
+/* Table horizontal scroll on mobile */
+@media (max-width: 767px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ========================================
+   MOBILE RESPONSIVE UTILITIES
+   ======================================== */
+
+/* Prevent iOS input zoom - minimum 16px font */
+@media (max-width: 767px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Global container safety */
+.page-container,
+.content-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mobile utility: stack on small screens */
+.stack-mobile {
+  display: flex;
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .stack-mobile {
+    flex-direction: column;
+  }
+}
+
+/* Mobile utility: full width on mobile */
+.full-mobile {
+  width: auto;
+}
+@media (max-width: 640px) {
+  .full-mobile {
+    width: 100%;
+  }
+}
+
+/* Mobile utility: hide on mobile */
+.hide-mobile {
+  display: block;
+}
+@media (max-width: 640px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Mobile utility: show only on mobile */
+.show-mobile {
+  display: none;
+}
+@media (max-width: 640px) {
+  .show-mobile {
+    display: block;
+  }
+}
+
+/* Mobile utility: smaller text on mobile */
+.text-responsive {
+  font-size: 14px;
+}
+@media (max-width: 480px) {
+  .text-responsive {
+    font-size: 12px;
+  }
+}
+
+/* Mobile utility: prevent text overflow */
+.text-truncate-mobile {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mobile utility: word break for long values */
+.break-words-mobile {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Mobile buttons - full width and larger tap targets */
+@media (max-width: 480px) {
+  .btn-mobile-full {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+/* Mobile cards - horizontal scroll container */
+.scroll-container-mobile {
+  display: flex;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .scroll-container-mobile {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    margin: 0 -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .scroll-container-mobile > * {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+}
+
+/* Ensure minimum tap target size — OPT-IN only. A blanket button/[role="button"]
+   selector ballooned compact controls (progress dots, toggle switches, chips, tabs)
+   into 44px circles at narrow widths. Genuine tap targets opt in via .btn/.clickable
+   (or the .touch-target classes above); primary CTAs are already >=44px via padding. */
+@media (max-width: 767px) {
+  a.btn,
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Custom range slider — spec: 4px track, #EDEDED bg, #0F0F0F fill, white thumb 22px */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #EDEDED;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  background: #EDEDED;
+  border-radius: 9999px;
+}
+
+input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: #EDEDED;
+  border-radius: 9999px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  border: 2px solid #0F0F0F;
+  box-shadow: none;
+  cursor: pointer;
+  margin-top: -9px;
+  transition: border-color 150ms ease;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  border: 2px solid #0F0F0F;
+  box-shadow: none;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  border-color: #EA2C00;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  border-color: #EA2C00;
+}
+
+input[type="range"]::-moz-range-progress {
+  background: #0F0F0F;
+  height: 4px;
+  border-radius: 9999px;
+}
+
+input[type="range"]:focus::-webkit-slider-thumb {
+  border-color: #EA2C00;
+}
+
+input[type="range"]:focus::-moz-range-thumb {
+  border-color: #EA2C00;
+}
+
+/* ---------------------------------------------------------------------------
+   Attain — one refined app-input skin (Align + Plan).
+   Hairline warm-gray border, white ground, near-black text, muted placeholder,
+   soft coral focus ring. Applied via the shared `attainTextInput` /
+   `attainDateInput` class strings so every text and date field matches.
+--------------------------------------------------------------------------- */
+.attain-input {
+  border: 1px solid #E0D9CE;
+  background: #FFFFFF;
+  color: #1A1A1A;
+  border-radius: 9px;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.attain-input::placeholder {
+  color: #B4A896;
+}
+.attain-input:hover {
+  border-color: #D2C8B9;
+}
+.attain-input:focus,
+.attain-input:focus-visible {
+  border-color: #EA2C00;
+  box-shadow: 0 0 0 3px rgba(234, 44, 0, 0.08);
+}
+
+/* Native date field — strip the default browser chrome and swap in a muted
+   calendar affordance that turns coral on hover, so it reads like an app
+   control rather than a raw browser picker. */
+.attain-date::-webkit-datetime-edit {
+  color: #1A1A1A;
+}
+.attain-date:invalid::-webkit-datetime-edit,
+.attain-date::-webkit-datetime-edit-text,
+.attain-date::-webkit-datetime-edit-month-field:empty,
+.attain-date::-webkit-datetime-edit-day-field:empty,
+.attain-date::-webkit-datetime-edit-year-field:empty {
+  color: #B4A896;
+}
+.attain-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  margin-left: 4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%238C8C8C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 15px 15px;
+}
+.attain-date::-webkit-calendar-picker-indicator:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23EA2C00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+}
